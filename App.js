@@ -1,16 +1,13 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- * @flow
- */
-
 import React, { Component } from 'react';
 import {
+  Alert,
+  TouchableHighlight,
   Image,
   Platform,
   StyleSheet,
   Text,
-  View
+  View,
+  ScrollView
 } from 'react-native';
 import t from 'tcomb-form-native'
 import ImageFactory from 'react-native-image-picker-form'
@@ -20,9 +17,15 @@ const Location = t.enums({
   'CRC': 'Rec Center'
 }, 'Location');
 
+const Category = t.enums({
+  'BCC': 'Bearcat Card',
+  'PC': 'PC Issue'
+}, 'Category');
+
 const Form = t.form.Form
 const DocumentFormStruct = t.struct({
   location: Location,
+  category: Category,
   description: t.String,
   image: t.String
 })
@@ -37,7 +40,8 @@ type Props = {};
 export default class App extends React.Component<Props, State> {
 
   constructor(props) {
-    super(props)
+    super(props);
+    this.onPress = this.onPress.bind(this);
     this.state = {
       value: {},
       options: {
@@ -45,13 +49,18 @@ export default class App extends React.Component<Props, State> {
           location: {
               label: 'Location',
               placeholder: 'Select a location',
-              help: 'Select a location'
+          },
+
+          category: {
+              label: 'Category',
+              placeholder: 'Select a category'
           },
 
           description: {
             label: 'Description',
-            placeholder: 'Describe issue',
-            help: 'Describe the issue'
+            placeholder: 'Describe the issue',
+            multiline: true,
+            numberOfLines: 4,
 
           },
 
@@ -74,22 +83,32 @@ export default class App extends React.Component<Props, State> {
     }
   }
 
+  onPress() {
+    var value = this._formRef.getValue();
+    if (value) { // if validation fails, value will be null
+      console.log(value); // value here is an instance of Person
+    }
+  }
+
   render() {
     return (
+      <ScrollView>
         <View>
           <Image
             style={{width: 369, height: 127}}
             source={{uri: 'https://cso.uc.edu/CSO.jpg'}}
           />
           <Form
-            ref={(ref: any) => {
-              this.form = ref
-            }}
+            ref={(ref) => this._formRef=ref}
             type={DocumentFormStruct}
             value={this.state.value}
             options={this.state.options}
           />
+          <TouchableHighlight style={styles.button} onPress={this.onPress} underlayColor='#99d9f4'>
+            <Text style={styles.buttonText}>Send</Text>
+          </TouchableHighlight>
         </View>
+      </ScrollView>
     );
   }
 }
@@ -101,4 +120,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F5FCFF',
   },
+  button: {
+    marginTop: 20,
+    alignItems: 'center',
+    backgroundColor: '#2196f3',
+    padding: 10
+  },
+  buttonText: {
+    color: '#ffffff',
+  }
 });
