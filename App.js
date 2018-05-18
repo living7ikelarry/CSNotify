@@ -86,7 +86,7 @@ export default class App extends React.Component<Props, State> {
   onPress() {
     var value = this._formRef.getValue();
     if (value) { // if validation fails, value will be null
-      console.log(value); // value here is an instance of Person
+      console.log(value.location); // value here is an instance of Person
     }
   }
 
