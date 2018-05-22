@@ -87,6 +87,18 @@ export default class App extends React.Component<Props, State> {
     var value = this._formRef.getValue();
     if (value) { // if validation fails, value will be null
       console.log(value.location); // value here is an instance of Person
+      fetch('http://10.142.2.167:3000/tickets', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          location: value.location,
+          category: value.category,
+          description: value.description
+        }),
+      })
     }
   }
 
