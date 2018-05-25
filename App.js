@@ -22,7 +22,9 @@ const Location = t.enums({
 
 const Category = t.enums({
   'BCC': 'Bearcat Card',
-  'PC': 'PC Issue'
+  'POS': 'Point-of-Sale',
+  'PC HW': 'PC Hardware Issue',
+  'PC SW': 'PC Software Issue',
 }, 'Category');
 
 const Form = t.form.Form
@@ -96,9 +98,9 @@ export default class App extends React.Component<Props, State> {
       };
       var data = new FormData();
       data.append("image", image);
-      data.append("category", "BCC");
-      data.append("description", "reader down");
-      data.append("location", "CRC");
+      data.append("category", value.category);
+      data.append("description", value.description);
+      data.append("location", value.location);
 
       var xhr = new XMLHttpRequest();
       xhr.withCredentials = true;
