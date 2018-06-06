@@ -17,7 +17,11 @@ const { width } = Dimensions.get('window');
 
 const Location = t.enums({
   'MSH': 'Marian Spencer Hall',
-  'CRC': 'Rec Center'
+  'CRC': 'Campus Recreation Center',
+  'TUC': 'Tangeman University Center',
+  'DAAP': 'DAAP',
+  'Care/Crawley': 'Care/Crawley'
+
 }, 'Location');
 
 const Category = t.enums({
@@ -25,6 +29,10 @@ const Category = t.enums({
   'POS': 'Point-of-Sale',
   'PC HW': 'PC Hardware Issue',
   'PC SW': 'PC Software Issue',
+  'MAC HW': 'Mac Hardware Issue',
+  'MAC SW': 'Mac Software Issue',
+  'Signage': 'Digital Signage',
+
 }, 'Category');
 
 const Form = t.form.Form
@@ -47,6 +55,8 @@ export default class App extends React.Component<Props, State> {
   constructor(props) {
     super(props);
     this.onPress = this.onPress.bind(this);
+    this.clearForm = this.clearForm.bind(this);
+    this.erroralert = this.erroralert.bind(this);
     this.state = {
       value: {},
       options: {
@@ -88,6 +98,53 @@ export default class App extends React.Component<Props, State> {
     }
   }
 
+  clearForm() {
+    // clear content from all textbox
+    this.setState({ value: null });
+  }
+
+  postTicket = function(data, alertcb) {
+    var xhr = new XMLHttpRequest();
+    xhr.withCredentials = true;
+
+    xhr.addEventListener("readystatechange", function () {
+      if (this.readyState === 4 && xhr.status === 200) {
+        alertcb(true);
+     } else if (this.readyState !== 4 && xhr.status !== 200 && xhr.status !== 0) {
+       alertcb(false);
+     }
+    });
+
+    xhr.open("POST", "http://10.142.2.167:3000/tickets");
+    xhr.setRequestHeader("Cache-Control", "no-cache");
+    xhr.setRequestHeader("Postman-Token", "08bd658d-1f02-43e2-8f2e-640fc0fe14dc");
+
+    xhr.send(data);
+  }
+
+  erroralert(didSucceed) {
+    if(didSucceed) {
+      Alert.alert(
+       'Success!',
+       'Ticket sent.',
+       [
+         {text: 'OK', onPress: () => console.log('OK Pressed')},
+       ],
+       { cancelable: false }
+     )
+     this.clearForm();
+   } else {
+     Alert.alert(
+       'Error',
+       'Ticket failed to send. Check network connection.',
+       [
+         {text: 'OK', onPress: () => console.log('OK Pressed')},
+       ],
+       { cancelable: false }
+     )
+   }
+ }
+
   onPress() {
     var value = this._formRef.getValue();
     if (value) { // if validation fails, value will be null
@@ -102,21 +159,11 @@ export default class App extends React.Component<Props, State> {
       data.append("description", value.description);
       data.append("location", value.location);
 
-      var xhr = new XMLHttpRequest();
-      xhr.withCredentials = true;
+      this.postTicket(data, this.erroralert);
 
-      xhr.addEventListener("readystatechange", function () {
-        if (this.readyState === 4) {
-          console.log(this.responseText);
-        }
-      });
-
-      xhr.open("POST", "http://10.142.2.167:3000/tickets");
-      xhr.setRequestHeader("Cache-Control", "no-cache");
-      xhr.setRequestHeader("Postman-Token", "08bd658d-1f02-43e2-8f2e-640fc0fe14dc");
-
-      xhr.send(data);
     }
+
+
   }
 
   render() {
@@ -148,6 +195,11 @@ export default class App extends React.Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    ...Platform.select({
+      ios: {
+        marginTop: 40,
+      },
+    }),
     backgroundColor: '#fff',
     flexDirection:'column',
     margin: 10

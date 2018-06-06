@@ -26,6 +26,8 @@ target 'CSOReporting' do
 
   pod 'RNImageCropPicker', :path =>  '../node_modules/react-native-image-crop-picker'
 
+  pod 'RNVectorIcons', :path => '../node_modules/react-native-vector-icons'
+
 end
 
 # very important to have, unless you removed React dependencies for Libraries 
