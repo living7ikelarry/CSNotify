@@ -16,22 +16,22 @@ import ImageFactory from 'react-native-image-picker-form'
 const { width } = Dimensions.get('window');
 
 const Location = t.enums({
-  'MSH': 'Marian Spencer Hall',
-  'CRC': 'Campus Recreation Center',
-  'TUC': 'Tangeman University Center',
+  'Marian Spencer Hall': 'Marian Spencer Hall',
+  'Campus Recreation Center': 'Campus Recreation Center',
+  'Tangeman University Center': 'Tangeman University Center',
   'DAAP': 'DAAP',
   'Care/Crawley': 'Care/Crawley'
 
 }, 'Location');
 
 const Category = t.enums({
-  'BCC': 'Bearcat Card',
-  'POS': 'Point-of-Sale',
-  'PC HW': 'PC Hardware Issue',
-  'PC SW': 'PC Software Issue',
-  'MAC HW': 'Mac Hardware Issue',
-  'MAC SW': 'Mac Software Issue',
-  'Signage': 'Digital Signage',
+  'Bearcat Card': 'Bearcat Card',
+  'Point-of-Sale': 'Point-of-Sale',
+  'PC Hardware Issue': 'PC Hardware Issue',
+  'PC Software Issue': 'PC Software Issue',
+  'Mac Hardware Issue': 'Mac Hardware Issue',
+  'Mac Software Issue': 'Mac Software Issue',
+  'Digital Signage': 'Digital Signage',
 
 }, 'Category');
 
