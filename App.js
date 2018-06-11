@@ -24,21 +24,27 @@ const Location = t.enums({
 
 }, 'Location');
 
-const Category = t.enums({
-  'Bearcat Card': 'Bearcat Card',
-  'Point-of-Sale': 'Point-of-Sale',
-  'PC Hardware Issue': 'PC Hardware Issue',
-  'PC Software Issue': 'PC Software Issue',
-  'Mac Hardware Issue': 'Mac Hardware Issue',
-  'Mac Software Issue': 'Mac Software Issue',
-  'Digital Signage': 'Digital Signage',
+const ParkingLoc = t.enums({
+  'Marian Spencer Hall': 'Marian Spencer Hall',
+  'Campus Recreation Center': 'Campus Recreation Center',
+  'Tangeman University Center': 'Tangeman University Center',
+  'DAAP': 'DAAP',
+  'Care/Crawley': 'Care/Crawley'
 
-}, 'Category');
+}, 'ParkingLocs');
+
+const Department = t.enums({
+  'Parking': 'Parking',
+  'Vending': 'Vending'
+
+}, 'Department');
 
 const Form = t.form.Form
+
+// basic form structure, now unused
 const DocumentFormStruct = t.struct({
   location: Location,
-  category: Category,
+  department: Department,
   description: t.String,
   image: t.String
 })
@@ -57,6 +63,7 @@ export default class App extends React.Component<Props, State> {
     this.onPress = this.onPress.bind(this);
     this.clearForm = this.clearForm.bind(this);
     this.erroralert = this.erroralert.bind(this);
+    this.onChange = this.onChange.bind(this);
     this.state = {
       value: {},
       options: {
@@ -66,9 +73,19 @@ export default class App extends React.Component<Props, State> {
               placeholder: 'Select a location',
           },
 
-          category: {
-              label: 'Category',
-              placeholder: 'Select a category'
+          vendingLoc: {
+            label: 'Location',
+            placeholder: 'Input location'
+          },
+
+          parkingLoc: {
+            label: 'Location',
+            placeholder: 'Select a location'
+          },
+
+          department: {
+              label: 'Department',
+              placeholder: 'Select a department'
           },
 
           description: {
@@ -94,8 +111,42 @@ export default class App extends React.Component<Props, State> {
           }
 
         }
-      }
+      },
+      type: this.getLocations('')
     }
+  }
+
+  getLocations(value) {
+    if (value.department === 'Parking') {
+      return t.struct({
+        department: Department,
+        parkingLoc: ParkingLoc,
+        description: t.String,
+        image: t.String
+      });
+    } else if (value.department === 'Vending') {
+      return t.struct({
+        department: Department,
+        vendingLoc: t.String,
+        description: t.String,
+        image: t.String
+      });
+    } else {
+      return t.struct({
+        department: Department
+      })
+    }
+  }
+
+  getInitialState() {
+    const value = {};
+    return { value, type: this.getLocations(value) };
+  }
+
+  onChange(value) {
+    // recalculate the type only if strictly necessary
+    const type = this.getLocations(value);
+    this.setState({ value, type });
   }
 
   clearForm() {
@@ -148,6 +199,11 @@ export default class App extends React.Component<Props, State> {
   onPress() {
     var value = this._formRef.getValue();
     if (value) { // if validation fails, value will be null
+      if (value.parkingLoc != null) {
+        var loc = value.parkingLoc;
+      } else if (value.vendingLoc != null) {
+        var loc = value.vendingLoc;
+      }
       var image = {
         uri: value.image,
         type: 'image/jpeg',
@@ -155,9 +211,9 @@ export default class App extends React.Component<Props, State> {
       };
       var data = new FormData();
       data.append("image", image);
-      data.append("category", value.category);
+      data.append("department", value.department);
       data.append("description", value.description);
-      data.append("location", value.location);
+      data.append("location", loc);
 
       this.postTicket(data, this.erroralert);
 
@@ -179,9 +235,10 @@ export default class App extends React.Component<Props, State> {
           </View>
           <Form
             ref={(ref) => this._formRef=ref}
-            type={DocumentFormStruct}
+            type={this.state.type}
             value={this.state.value}
             options={this.state.options}
+            onChange={this.onChange}
           />
           <TouchableHighlight style={styles.button} onPress={this.onPress} underlayColor='#99d9f4'>
             <Text style={styles.buttonText}>Send</Text>
