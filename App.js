@@ -8,46 +8,17 @@ import {
   Text,
   View,
   ScrollView,
-  Dimensions
+  Dimensions,
+  Modal,
+  Button,
+  ListView
 } from 'react-native';
 import t from 'tcomb-form-native'
 import ImageFactory from 'react-native-image-picker-form'
-
-const { width } = Dimensions.get('window');
-
-const Location = t.enums({
-  'Marian Spencer Hall': 'Marian Spencer Hall',
-  'Campus Recreation Center': 'Campus Recreation Center',
-  'Tangeman University Center': 'Tangeman University Center',
-  'DAAP': 'DAAP',
-  'Care/Crawley': 'Care/Crawley'
-
-}, 'Location');
-
-const ParkingLoc = t.enums({
-  'Marian Spencer Hall': 'Marian Spencer Hall',
-  'Campus Recreation Center': 'Campus Recreation Center',
-  'Tangeman University Center': 'Tangeman University Center',
-  'DAAP': 'DAAP',
-  'Care/Crawley': 'Care/Crawley'
-
-}, 'ParkingLocs');
-
-const Department = t.enums({
-  'Parking': 'Parking',
-  'Vending': 'Vending'
-
-}, 'Department');
+import * as Const from './constants/const.js'
+import styles from './styles/styles.js'
 
 const Form = t.form.Form
-
-// basic form structure, now unused
-const DocumentFormStruct = t.struct({
-  location: Location,
-  department: Department,
-  description: t.String,
-  image: t.String
-})
 
 type Props = {}
 type State = {
@@ -60,25 +31,25 @@ export default class App extends React.Component<Props, State> {
 
   constructor(props) {
     super(props);
-    this.onPress = this.onPress.bind(this);
+    this.onPressSend = this.onPressSend.bind(this);
+    this.onPressOpen = this.onPressOpen.bind(this);
     this.clearForm = this.clearForm.bind(this);
     this.erroralert = this.erroralert.bind(this);
     this.onChange = this.onChange.bind(this);
+
+    var ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
+
     this.state = {
       value: {},
       options: {
         fields: {
-          location: {
-              label: 'Location',
-              placeholder: 'Select a location',
-          },
 
-          vendingLoc: {
+          locationTxt: {
             label: 'Location',
             placeholder: 'Input location'
           },
 
-          parkingLoc: {
+          locationSel: {
             label: 'Location',
             placeholder: 'Select a location'
           },
@@ -96,7 +67,6 @@ export default class App extends React.Component<Props, State> {
 
           },
 
-
           image: {
             config: {
               title: 'Take Picture',
@@ -109,38 +79,41 @@ export default class App extends React.Component<Props, State> {
             error: 'No image provided',
             factory: ImageFactory
           }
-
         }
       },
-      type: this.getLocations('')
+      type: this.getLocations(''),
+      modalVisible: false,
+      dataSource: ds.cloneWithRows(['row 1', 'row 2']),
     }
   }
 
   getLocations(value) {
     if (value.department === 'Parking') {
       return t.struct({
-        department: Department,
-        parkingLoc: ParkingLoc,
+        department: Const.Department,
+        locationSel: Const.ParkingLoc,
         description: t.String,
         image: t.String
       });
-    } else if (value.department === 'Vending') {
+    } else if (value.department === 'Vending' || value.department === 'Bearcat Card') {
       return t.struct({
-        department: Department,
-        vendingLoc: t.String,
+        department: Const.Department,
+        locationTxt: t.String,
+        description: t.String,
+        image: t.String
+      });
+    } else if (value.department === 'Campus Recreation') {
+      return t.struct({
+        department: Const.Department,
+        locationSel: Const.RecLoc,
         description: t.String,
         image: t.String
       });
     } else {
       return t.struct({
-        department: Department
-      })
+        department: Const.Department
+      });
     }
-  }
-
-  getInitialState() {
-    const value = {};
-    return { value, type: this.getLocations(value) };
   }
 
   onChange(value) {
@@ -196,13 +169,13 @@ export default class App extends React.Component<Props, State> {
    }
  }
 
-  onPress() {
+  onPressSend() {
     var value = this._formRef.getValue();
     if (value) { // if validation fails, value will be null
-      if (value.parkingLoc != null) {
-        var loc = value.parkingLoc;
-      } else if (value.vendingLoc != null) {
-        var loc = value.vendingLoc;
+      if (value.department === 'Parking' || value.department === 'Campus Recreation') {
+        var loc = value.locationSel;
+      } else if (value.department === 'Vending' || value.department === 'Bearcat Card') {
+        var loc = value.locationTxt;
       }
       var image = {
         uri: value.image,
@@ -220,6 +193,44 @@ export default class App extends React.Component<Props, State> {
     }
 
 
+  }
+
+  onPressOpen() {
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = (e) => {
+      if (xhr.readyState !== 4) {
+        return;
+      }
+
+      if (xhr.status === 200) {
+        console.log('success', xhr.responseText);
+        this.openModal(xhr.responseText);
+      } else {
+        alert('Error retrieving tickets');
+      }
+    };
+
+    xhr.open('GET', 'http://10.142.2.167:3000/tickets');
+    xhr.send();
+
+  }
+
+  openModal(data) {
+    this.setState({modalVisible: true, dataSource: this.state.dataSource.cloneWithRows(data)});
+  }
+
+  closeModal() {
+    this.setState({modalVisible: false});
+  }
+
+  renderRow = function(rowData) {
+    return (
+      <View style={styles.row}>
+        <Text>{rowData.department}</Text>
+        <Text>{rowData.location}</Text>
+        <Text>{rowData.description}</Text>
+      </View>
+    );
   }
 
   render() {
@@ -240,44 +251,38 @@ export default class App extends React.Component<Props, State> {
             options={this.state.options}
             onChange={this.onChange}
           />
-          <TouchableHighlight style={styles.button} onPress={this.onPress} underlayColor='#99d9f4'>
+          <TouchableHighlight style={styles.button} onPress={this.onPressSend} underlayColor='#99d9f4'>
             <Text style={styles.buttonText}>Send</Text>
           </TouchableHighlight>
+          <TouchableHighlight style={styles.button} onPress={this.onPressOpen} underlayColor='#99d9f4'>
+            <Text style={styles.buttonText}>Open Tickets</Text>
+          </TouchableHighlight>
+          <View style={styles.modalView}>
+          <Modal
+              visible={this.state.modalVisible}
+              animationType={'slide'}
+              onRequestClose={() => this.closeModal()}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.innerContainer}>
+              <ListView
+                dataSource={ this.state.dataSource }
+                renderRow={ this.renderRow }
+              />
+                <Text style = {{paddingTop: 20}} />
+
+                <Text style = {{paddingTop: 20}} />
+                <Button
+                    onPress={() => this.closeModal()}
+                    title="Close"
+                >
+                </Button>
+              </View>
+            </View>
+          </Modal>
+          </View>
         </View>
       </ScrollView>
     );
   }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    ...Platform.select({
-      ios: {
-        marginTop: 40,
-      },
-    }),
-    backgroundColor: '#fff',
-    flexDirection:'column',
-    margin: 10
-  },
-  button: {
-    marginTop: 20,
-    alignItems: 'center',
-    backgroundColor: '#2196f3',
-    padding: 10
-  },
-  buttonText: {
-    color: '#ffffff',
-  },
-  image: {
-   width: 250,
-   height: 86,
- },
- bgContainer: {
-   width: width-5,
-   height: 86,
-   justifyContent: 'flex-start',
-   alignItems: 'center'
- }
-});
