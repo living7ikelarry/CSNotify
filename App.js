@@ -197,14 +197,15 @@ export default class App extends React.Component<Props, State> {
 
   onPressOpen() {
     var xhr = new XMLHttpRequest();
+    xhr.responseType = 'json';
     xhr.onreadystatechange = (e) => {
       if (xhr.readyState !== 4) {
         return;
       }
 
       if (xhr.status === 200) {
-        console.log('success', xhr.responseText);
-        this.openModal(xhr.responseText);
+        console.log('success', xhr.response);
+        this.openModal(xhr.response);
       } else {
         alert('Error retrieving tickets');
       }
@@ -221,16 +222,6 @@ export default class App extends React.Component<Props, State> {
 
   closeModal() {
     this.setState({modalVisible: false});
-  }
-
-  renderRow = function(rowData) {
-    return (
-      <View style={styles.row}>
-        <Text>{rowData.department}</Text>
-        <Text>{rowData.location}</Text>
-        <Text>{rowData.description}</Text>
-      </View>
-    );
   }
 
   render() {
@@ -254,9 +245,12 @@ export default class App extends React.Component<Props, State> {
           <TouchableHighlight style={styles.button} onPress={this.onPressSend} underlayColor='#99d9f4'>
             <Text style={styles.buttonText}>Send</Text>
           </TouchableHighlight>
-          <TouchableHighlight style={styles.button} onPress={this.onPressOpen} underlayColor='#99d9f4'>
-            <Text style={styles.buttonText}>Open Tickets</Text>
-          </TouchableHighlight>
+          <Text style={{paddingTop: 10}} />
+          <Button
+              onPress={() => this.onPressOpen()}
+              title="View Active Tickets"
+          >
+          </Button>
           <View style={styles.modalView}>
           <Modal
               visible={this.state.modalVisible}
@@ -265,19 +259,26 @@ export default class App extends React.Component<Props, State> {
           >
             <View style={styles.modalContainer}>
               <View style={styles.innerContainer}>
-              <ListView
-                dataSource={ this.state.dataSource }
-                renderRow={ this.renderRow }
-              />
-                <Text style = {{paddingTop: 20}} />
 
-                <Text style = {{paddingTop: 20}} />
-                <Button
-                    onPress={() => this.closeModal()}
-                    title="Close"
-                >
-                </Button>
+                <ListView
+                  dataSource={ this.state.dataSource }
+                  enableEmptySections={ true }
+                  renderRow={ (rowData) =>
+                    <View style={styles.row}>
+                      <Text>{rowData.department}</Text>
+                      <Text>{rowData.location}</Text>
+                      <Text>{rowData.description}</Text>
+                    </View>
+                  }
+                />
+
               </View>
+              <Text style={{paddingTop: 20}} />
+              <Button
+                  onPress={() => this.closeModal()}
+                  title="Close"
+              >
+              </Button>
             </View>
           </Modal>
           </View>

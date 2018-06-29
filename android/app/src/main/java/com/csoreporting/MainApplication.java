@@ -3,6 +3,7 @@ package com.csoreporting;
 import android.app.Application;
 
 import com.facebook.react.ReactApplication;
+import com.testfairy.react.TestFairyPackage;
 import com.oblador.vectoricons.VectorIconsPackage;
 import com.reactnative.ivpusic.imagepicker.PickerPackage;
 import com.facebook.react.ReactNativeHost;
@@ -25,6 +26,7 @@ public class MainApplication extends Application implements ReactApplication {
     protected List<ReactPackage> getPackages() {
       return Arrays.<ReactPackage>asList(
           new MainReactPackage(),
+            new TestFairyPackage(),
             new VectorIconsPackage(),
             new PickerPackage()
       );

@@ -22,6 +22,7 @@ export default StyleSheet.create({
   },
   buttonText: {
     color: '#ffffff',
+    fontSize: 16
   },
   image: {
    width: 250,
@@ -41,9 +42,15 @@ export default StyleSheet.create({
   },
   innerContainer: {
     alignItems: 'center',
+    paddingTop: 20,
+    height: '80%',
   },
   modalView: {
     flex: 1,
     justifyContent: 'center',
+  },
+  row: {
+    padding: 12,
+    paddingBottom: 16
   },
 })
