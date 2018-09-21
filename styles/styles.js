@@ -17,12 +17,15 @@ export default StyleSheet.create({
   button: {
     marginTop: 20,
     alignItems: 'center',
-    backgroundColor: '#2196f3',
-    padding: 10
+    backgroundColor: '#bd1c2a',
+    padding: 8,
+    borderRadius:10,
+    borderWidth: 1,
+    borderColor: '#fff'
   },
   buttonText: {
     color: '#ffffff',
-    fontSize: 16
+    fontSize: 18
   },
   image: {
    width: 250,
