@@ -56,4 +56,9 @@ export default StyleSheet.create({
     padding: 12,
     paddingBottom: 16
   },
+  loadScreen: {
+    paddingTop: '50%',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
 })

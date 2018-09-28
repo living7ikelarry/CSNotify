@@ -12,13 +12,39 @@ import {
   Modal,
   Button,
   ListView,
-  AsyncStorage
+  AsyncStorage,
 } from 'react-native';
 import t from 'tcomb-form-native'
 import ImageFactory from 'react-native-image-picker-form'
 import styles from './styles/styles.js'
+import RNRestart from 'react-native-restart'
+import {setJSExceptionHandler} from 'react-native-exception-handler'
 
 const Form = t.form.Form
+
+// handle unexpected errors globally in release build
+const errorHandler = (e, isFatal) => {
+  if (isFatal) {
+    Alert.alert(
+        'Unexpected error occurred',
+        `
+        Error: ${(isFatal) ? 'Fatal:' : ''} ${e.name} ${e.message}
+
+        We will need to restart the app.
+        `,
+      [{
+        text: 'Restart',
+        onPress: () => {
+          RNRestart.Restart();
+        }
+      }]
+    );
+  } else {
+    console.log(e);
+  }
+};
+
+setJSExceptionHandler(errorHandler);
 
 type Props = {}
 type State = {
@@ -146,6 +172,7 @@ export default class App extends React.Component<Props, State> {
             department: this.getDepartments(),
             locationSel: t.enums(data[i].locations, value.department),
             description: t.String,
+            // image: t.maybe(t.String)
             image: t.String
           });
         }
@@ -154,6 +181,7 @@ export default class App extends React.Component<Props, State> {
             department: this.getDepartments(),
             locationTxt: t.String,
             description: t.String,
+            // image: t.maybe(t.String)
             image: t.String
           });
         }
@@ -187,9 +215,9 @@ export default class App extends React.Component<Props, State> {
      }
     });
 
-    xhr.open("POST", "http://10.142.2.167:3000/tickets");
-    xhr.setRequestHeader("Cache-Control", "no-cache");
-    xhr.setRequestHeader("Postman-Token", "08bd658d-1f02-43e2-8f2e-640fc0fe14dc");
+    xhr.open('POST', this.state.url + '/tickets');
+    // xhr.setRequestHeader("Cache-Control", "no-cache");
+    // xhr.setRequestHeader("Postman-Token", "08bd658d-1f02-43e2-8f2e-640fc0fe14dc");
 
     xhr.send(data);
   }
@@ -237,7 +265,9 @@ export default class App extends React.Component<Props, State> {
         name: 'img.jpg',
       };
       var data = new FormData();
-      data.append("image", image);
+      if (value.image) {
+        data.append("image", image);
+      }
       data.append("department", value.department);
       data.append("description", value.description);
       data.append("location", loc);
@@ -264,7 +294,7 @@ export default class App extends React.Component<Props, State> {
       }
     };
 
-    xhr.open('GET', 'http://10.142.2.167:3000/tickets');
+    xhr.open('GET', this.state.url + '/tickets');
     xhr.send();
 
   }
@@ -337,10 +367,24 @@ export default class App extends React.Component<Props, State> {
     );
   }
 
+  loadScreen() {
+    return (
+      <View style={styles.loadScreen}>
+        <Text>App is loading...</Text>
+        <Text style={{paddingTop: 20}} />
+        <Image
+          style={styles.image}
+          resizeMode='contain'
+          source={require('./images/banner.png')}
+        />
+      </View>
+    );
+  }
+
   render() {
     return (
       <View>
-        {this.state.loaded ? this.content() : null}
+        {this.state.loaded ? this.content() : this.loadScreen()}
       </View>
     );
   }
