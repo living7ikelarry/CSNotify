@@ -6,6 +6,7 @@ import {
   Platform,
   StyleSheet,
   Text,
+  TextInput,
   View,
   ScrollView,
   Dimensions,
@@ -19,6 +20,7 @@ import ImageFactory from 'react-native-image-picker-form'
 import styles from './styles/styles.js'
 import RNRestart from 'react-native-restart'
 import {setJSExceptionHandler} from 'react-native-exception-handler'
+import * as Animatable from 'react-native-animatable';
 
 const Form = t.form.Form
 
@@ -75,6 +77,10 @@ export default class App extends React.Component<Props, State> {
       loaded: false,
       appdata: {},
       selected: '',
+      passText: '',
+      passValid: false,
+      loadedPass: false,
+      passExist: false,
       value: '',
       url: 'https://cso.uc.edu:3000/notify',
       options: {
@@ -86,19 +92,19 @@ export default class App extends React.Component<Props, State> {
           },
 
           locationSel: {
-            label: 'Location',
+            label: 'Select a Location (dropdown below)',
             placeholder: 'Select a location'
           },
 
           department: {
-            label: 'Department',
+            label: 'Select a Department (dropdown below)',
             placeholder: 'Select a department'
           },
 
           description: {
             label: 'Description',
             placeholder: 'Describe the issue',
-            multiline: true,
+            multiline: false,
             numberOfLines: 4,
 
           },
@@ -127,6 +133,27 @@ export default class App extends React.Component<Props, State> {
     if (__DEV__) {
       this.state.url = 'http://10.142.2.167:3000';
     }
+
+  }
+
+  async componentWillMount() {
+    await this.fetchPass().done();
+  }
+
+  async fetchPass(): Promise<void> {
+    const pass = await AsyncStorage.getItem('pass');
+    console.log(pass);
+    if (pass != null & (pass === 'uc' || pass === 'UC' || pass === 'uC' || pass === 'Uc')) {
+      await this.promisedSetState({passValid:true});
+    }
+  }
+
+  promisedSetState = (newState) => {
+    return new Promise((resolve) => {
+        this.setState(newState, () => {
+            resolve()
+        });
+    });
   }
 
   async componentDidMount() {
@@ -139,12 +166,7 @@ export default class App extends React.Component<Props, State> {
     });
   }
 
-  // was going to add a welcome tutorial/instructions
-  setWelcomeModalVisible(visible) {
-    this.setState({ welcomeModalVisible: visible });
-  }
-
-// list of departments-only from db
+  // list of departments-only from db
   getDepartments() {
     // console.log(this.state.appdata);
     var data = JSON.parse(this.state.appdata);
@@ -157,7 +179,7 @@ export default class App extends React.Component<Props, State> {
     return t.enums({'Error': 'Error'}, 'Department');
   }
 
-// list of locations for department
+  // list of locations for department
   getLocations(value) {
     if (value === '' || value.department === '') {
       return t.struct({
@@ -173,7 +195,7 @@ export default class App extends React.Component<Props, State> {
             locationSel: t.enums(data[i].locations, value.department),
             description: t.String,
             // image: t.maybe(t.String)
-            image: t.String
+            image: t.maybe(t.String)
           });
         }
         else if (data[i].department != 'Department' & value.department === data[i].department & data[i].input === 'locationTxt') {
@@ -182,7 +204,7 @@ export default class App extends React.Component<Props, State> {
             locationTxt: t.String,
             description: t.String,
             // image: t.maybe(t.String)
-            image: t.String
+            image: t.maybe(t.String)
           });
         }
       }
@@ -309,7 +331,7 @@ export default class App extends React.Component<Props, State> {
   }
 
 
-  content() {
+  appContent() {
     return (
       <ScrollView>
         <View style={styles.container}>
@@ -327,10 +349,10 @@ export default class App extends React.Component<Props, State> {
             options={this.state.options}
             onChange={this.onChange}
           />
-          <TouchableHighlight style={styles.button} onPress={this.onPressSend} underlayColor='#99d9f4'>
+          <TouchableHighlight style={styles.button} onPress={this.onPressSend} underlayColor='#f78080'>
             <Text style={styles.buttonText}>Send</Text>
           </TouchableHighlight>
-          <TouchableHighlight style={styles.button} onPress={this.onPressOpen} underlayColor='#99d9f4'>
+          <TouchableHighlight style={styles.button} onPress={this.onPressOpen} underlayColor='#f78080'>
             <Text style={styles.buttonText}>View Active Tickets</Text>
           </TouchableHighlight>
           <View style={styles.modalView}>
@@ -356,7 +378,7 @@ export default class App extends React.Component<Props, State> {
 
               </View>
               <Text style={{paddingTop: 20}} />
-              <TouchableHighlight style={styles.button} onPress={this.closeTicketModal} underlayColor='#99d9f4'>
+              <TouchableHighlight style={styles.button} onPress={this.closeTicketModal} underlayColor='#f78080'>
                 <Text style={styles.buttonText}>Close</Text>
               </TouchableHighlight>
             </View>
@@ -370,13 +392,43 @@ export default class App extends React.Component<Props, State> {
   loadScreen() {
     return (
       <View style={styles.loadScreen}>
-        <Text>App is loading...</Text>
-        <Text style={{paddingTop: 20}} />
-        <Image
+        <Animatable.Image
+          animation="pulse"
+          easing="ease-out"
+          iterationCount="infinite"
+
           style={styles.image}
           resizeMode='contain'
           source={require('./images/banner.png')}
         />
+        <Text style={{paddingTop: 20}} />
+        <Animatable.Text
+          animation="slideInUp"
+          iterationCount={1}
+        >Loading</Animatable.Text>
+      </View>
+    );
+  }
+
+  submitPass(pass) {
+    if (pass === 'uc' || pass === 'UC' || pass === 'uC' || pass === 'Uc') {
+      AsyncStorage.setItem('pass', pass);
+      this.setState({passValid:true});
+    }
+  }
+
+  passScreen() {
+    return (
+      <View style={styles.loadScreen}>
+        <TextInput
+          style={{width:200}}
+          placeholder='Input one-time password here'
+          onChangeText={(passText) => this.setState({passText})}
+          value={this.state.passText}>
+        </TextInput>
+        <TouchableHighlight style={styles.button} onPress={this.submitPass(this.state.passText)} underlayColor='#f78080'>
+          <Text style={styles.buttonText}>Submit</Text>
+        </TouchableHighlight>
       </View>
     );
   }
@@ -384,7 +436,7 @@ export default class App extends React.Component<Props, State> {
   render() {
     return (
       <View>
-        {this.state.loaded ? this.content() : this.loadScreen()}
+        {(this.state.loaded & this.state.passValid) ? this.appContent() : (!this.state.passValid ? this.passScreen() : this.loadScreen())}
       </View>
     );
   }
