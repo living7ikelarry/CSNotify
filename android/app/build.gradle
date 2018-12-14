@@ -100,11 +100,11 @@ android {
     buildToolsVersion "27.0.3"
 
     defaultConfig {
-        applicationId "com.csoreporting"
+        applicationId "com.csnotify"
         minSdkVersion 16
-        targetSdkVersion 23
-        versionCode 1
-        versionName "1.0"
+        targetSdkVersion 26
+        versionCode 3
+        versionName "3.0"
         ndk {
             abiFilters "armeabi-v7a", "x86"
         }
@@ -151,12 +151,13 @@ android {
 }
 
 dependencies {
+    compile project(':react-native-image-resizer')
     compile project(':react-native-restart')
     compile project(':react-native-exception-handler')
     compile project(':react-native-testfairy')
     compile project(':react-native-vector-icons')
     compile project(':react-native-image-crop-picker')
-    compile project(':rn-fetch-blob')                                                                      
+    compile project(':rn-fetch-blob')
     compile fileTree(dir: "libs", include: ["*.jar"])
     compile "com.android.support:appcompat-v7:27.1.0"
     compile "com.facebook.react:react-native:+"  // From node_modules

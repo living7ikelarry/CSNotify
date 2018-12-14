@@ -2,8 +2,8 @@ import React, { Component } from 'react';
 import {
   Alert,
   TouchableHighlight,
-  Image,
   Platform,
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -21,6 +21,14 @@ import styles from './styles/styles.js'
 import RNRestart from 'react-native-restart'
 import {setJSExceptionHandler} from 'react-native-exception-handler'
 import * as Animatable from 'react-native-animatable';
+import Spinner from 'react-native-loading-spinner-overlay';
+import ImageResizer from 'react-native-image-resizer';
+import Toast from 'react-native-simple-toast';
+
+import { default as ProgressImg } from 'react-native-image-progress';
+import * as Progress from 'react-native-progress';
+const INDICATORS = [null, Progress.Bar, Progress.Circle, Progress.Pie];
+
 
 const Form = t.form.Form
 
@@ -55,6 +63,7 @@ type State = {
 }
 
 type Props = {};
+
 export default class App extends React.Component<Props, State> {
 
   constructor(props) {
@@ -70,6 +79,9 @@ export default class App extends React.Component<Props, State> {
     this.getDepartments = this.getDepartments.bind(this);
     this.getLocations = this.getLocations.bind(this);
     this.closeTicketModal = this.closeTicketModal.bind(this);
+    this.convertDate = this.convertDate.bind(this);
+    this.openImageModal = this.openImageModal.bind(this);
+    this.closeImageModal = this.closeImageModal.bind(this);
 
     var ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
 
@@ -81,6 +93,8 @@ export default class App extends React.Component<Props, State> {
       passValid: false,
       loadedPass: false,
       passExist: false,
+      sendDisable: false,
+      spinner: false,
       value: '',
       url: 'https://cso.uc.edu:3000/notify',
       options: {
@@ -126,6 +140,9 @@ export default class App extends React.Component<Props, State> {
       type: '',
       ticketModalVisible: false,
       welcomeModalVisible: false,
+      imageModalVisible: false,
+      imageFileName: '',
+      imageURL: '',
       dataSource: ds.cloneWithRows(['row 1', 'row 2']),
     }
 
@@ -219,7 +236,7 @@ export default class App extends React.Component<Props, State> {
   }
 
   clearForm() {
-    // clear content from all textbox
+    // clear content from all textbox and enable send button again
     this.setState({ value: '' });
   }
 
@@ -230,11 +247,13 @@ export default class App extends React.Component<Props, State> {
     xhr.withCredentials = true;
 
     xhr.addEventListener("readystatechange", function () {
-      if (this.readyState === 4 && xhr.status === 200) {
-        alertcb(true);
-     } else if (this.readyState !== 4 && xhr.status !== 200 && xhr.status !== 0) {
-       alertcb(false);
-     }
+      if (xhr.readyState === 4) {
+        if (xhr.status >= 200 && xhr.status < 304) {
+          alertcb(true);
+        } else {
+          alertcb(false);
+        }
+      }
     });
 
     xhr.open('POST', this.state.url + '/tickets');
@@ -251,7 +270,7 @@ export default class App extends React.Component<Props, State> {
          'Success!',
          'Ticket sent.',
          [
-           {text: 'OK', onPress: () => console.log('OK Pressed')},
+           {text: 'OK', onPress: () => this.setState({spinner: false})}
          ],
          { cancelable: false }
        )
@@ -261,19 +280,20 @@ export default class App extends React.Component<Props, State> {
          'Error',
          'Ticket failed to send. Check network connection.',
          [
-           {text: 'OK', onPress: () => console.log('OK Pressed')},
+           {text: 'OK', onPress: () => this.setState({spinner: false})}
          ],
          { cancelable: false }
        )
      }
+     this.setState({ sendDisable: false });
    }
-
 
   // send ticket
   onPressSend() {
     var value = this._formRef.getValue();
     var data = JSON.parse(this.state.appdata);
     if (value) { // if validation fails, value will be null
+      this.setState({ sendDisable: true, spinner: true });
       for (i = 0; i < data.length; i++) {
         if (value.department === data[i].department & data[i].input === 'locationSel') {
           var loc = value.locationSel;
@@ -281,20 +301,34 @@ export default class App extends React.Component<Props, State> {
           var loc = value.locationTxt;
         }
       }
-      var image = {
-        uri: value.image,
-        type: 'image/jpeg',
-        name: 'img.jpg',
-      };
-      var data = new FormData();
-      if (value.image) {
-        data.append("image", image);
-      }
-      data.append("department", value.department);
-      data.append("description", value.description);
-      data.append("location", loc);
 
-      this.postTicket(data, this.erroralert);
+      // resize image if present, and create form data
+      if (value.image) {
+        ImageResizer.createResizedImage(value.image, 640, 960, 'JPEG', 80)
+          .then(({ uri }) => {
+            var data = new FormData();
+            var image = {
+              uri: uri,
+              type: 'image/jpeg',
+              name: 'img.jpg',
+            };
+            data.append("image", image);
+            data.append("department", value.department);
+            data.append("description", value.description);
+            data.append("location", loc);
+            this.postTicket(data, this.erroralert);
+          })
+          .catch(err => {
+            console.log(err);
+            // return Alert.alert('Unable to resize the photo', 'Check the console for full the error message');
+          });
+      } else {
+        var data = new FormData();
+        data.append("department", value.department);
+        data.append("description", value.description);
+        data.append("location", loc);
+        this.postTicket(data, this.erroralert);
+      }
 
     }
   }
@@ -310,7 +344,11 @@ export default class App extends React.Component<Props, State> {
 
       if (xhr.status === 200) {
         console.log('success', xhr.response);
-        this.openTicketModal(xhr.response);
+        var data = xhr.response;
+        data.sort(function compare(a, b) {
+          return b.date - a.date;
+        });
+        this.openTicketModal(data);
       } else {
         alert('Error retrieving tickets');
       }
@@ -330,11 +368,52 @@ export default class App extends React.Component<Props, State> {
     this.setState({ticketModalVisible: false});
   }
 
+  convertDate(milli) {
+    var date = new Date(milli);
+    return date.toLocaleString();
+  }
+
+  openImageModal(imagePath) {
+    if (imagePath) {
+      var fileName = imagePath.replace('./images/', '');
+      this.setState({imageURL: this.state.url + '/tickets/' + fileName}, function () {
+        console.log(this.state.imageURL);
+        this.setState({imageModalVisible: true});
+      });
+    } else {
+      Toast.show('Image not submitted for this note');
+    }
+  }
+
+  closeImageModal() {
+    this.setState({imageModalVisible: false});
+  }
+
+  renderRow(rowData) {
+    return (
+      <View>
+        <TouchableHighlight onPress={() => this.openImage(rowData.imagePath)}>
+          <View style={styles.row}>
+            <Text>{this.convertDate(rowData.date)}</Text>
+            <Text>{rowData.department}</Text>
+            <Text>{rowData.location}</Text>
+            <Text>{rowData.description}</Text>
+          </View>
+        </TouchableHighlight>
+      </View>
+    )
+  }
 
   appContent() {
     return (
       <ScrollView>
         <View style={styles.container}>
+          <Spinner
+            visible={this.state.spinner}
+            textContent={'Sending...'}
+            textStyle={styles.spinnerTextStyle}
+            cancelable={true}
+          />
           <View style={styles.bgContainer}>
             <Image
               style={styles.image}
@@ -349,11 +428,11 @@ export default class App extends React.Component<Props, State> {
             options={this.state.options}
             onChange={this.onChange}
           />
-          <TouchableHighlight style={styles.button} onPress={this.onPressSend} underlayColor='#f78080'>
+          <TouchableHighlight style={styles.button} onPress={this.onPressSend} underlayColor='#f78080' disabled={this.state.sendDisable}>
             <Text style={styles.buttonText}>Send</Text>
           </TouchableHighlight>
           <TouchableHighlight style={styles.button} onPress={this.onPressOpen} underlayColor='#f78080'>
-            <Text style={styles.buttonText}>View Active Tickets</Text>
+            <Text style={styles.buttonText}>View Active Notifications</Text>
           </TouchableHighlight>
           <View style={styles.modalView}>
           <Modal
@@ -368,20 +447,56 @@ export default class App extends React.Component<Props, State> {
                   dataSource={ this.state.dataSource }
                   enableEmptySections={ true }
                   renderRow={ (rowData) =>
-                    <View style={styles.row}>
-                      <Text>{rowData.department}</Text>
-                      <Text>{rowData.location}</Text>
-                      <Text>{rowData.description}</Text>
+                    <View>
+                      <TouchableHighlight onPress={() => this.openImageModal(rowData.imagePath)}>
+                        <View style={styles.row}>
+                          <Text>{this.convertDate(rowData.date)}</Text>
+                          <Text>Department: {rowData.department}</Text>
+                          <Text>Location: {rowData.location}</Text>
+                          <Text>Description: {rowData.description}</Text>
+                        </View>
+                      </TouchableHighlight>
                     </View>
                   }
                 />
 
               </View>
               <Text style={{paddingTop: 20}} />
+              <Text style={{textAlign: 'center'}}>*Press an entry above to view image if available</Text>
+
               <TouchableHighlight style={styles.button} onPress={this.closeTicketModal} underlayColor='#f78080'>
                 <Text style={styles.buttonText}>Close</Text>
               </TouchableHighlight>
             </View>
+            <Modal
+                visible={this.state.imageModalVisible}
+                animationType={'slide'}
+                onRequestClose={() => this.closeImageModal()}
+            >
+              <View style={styles.modalContainer}>
+                <View style={styles.innerContainer}>
+                <ProgressImg
+                  source={{uri: this.state.imageURL}}
+                  indicator={Platform.OS === 'ios' ? Progress.Pie : Progress.Bar}
+                  indicatorProps={{
+                      size: 80,
+                      borderWidth: 0,
+                      color: 'rgba(150, 150, 150, 1)',
+                      unfilledColor: 'rgba(200, 200, 200, 0.2)'
+                  }}
+                  style={{
+                    width: '100%',
+                    height: '100%'
+                  }}
+                  resizeMode={'contain'}
+                  />
+                </View>
+                <Text style={{paddingTop: 20}} />
+                <TouchableHighlight style={styles.button} onPress={this.closeImageModal} underlayColor='#f78080'>
+                  <Text style={styles.buttonText}>Close Image</Text>
+                </TouchableHighlight>
+              </View>
+            </Modal>
           </Modal>
           </View>
         </View>
@@ -421,8 +536,8 @@ export default class App extends React.Component<Props, State> {
     return (
       <View style={styles.loadScreen}>
         <TextInput
-          style={{width:200}}
-          placeholder='Input one-time password here'
+          style={{width:200, height:60, borderWidth:1, borderColor:"black"}}
+          placeholder='Input password here'
           onChangeText={(passText) => this.setState({passText})}
           value={this.state.passText}>
         </TextInput>

@@ -21,13 +21,19 @@ target 'CSOReporting' do
     'RCTSettings',
     'RCTText',
     'RCTVibration',
-    'RCTWebSocket'
+    'RCTWebSocket',
+    'ART'
   ]
 
   pod 'RNImageCropPicker', :path =>  '../node_modules/react-native-image-crop-picker'
 
   pod 'RNVectorIcons', :path => '../node_modules/react-native-vector-icons'
+  
+  # Add new pods below this line
+  pod 'react-native-image-resizer', :path => '../node_modules/react-native-image-resizer'
 
+  
+  
 end
 
 # very important to have, unless you removed React dependencies for Libraries 

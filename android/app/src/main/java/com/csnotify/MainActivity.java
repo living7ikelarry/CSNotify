@@ -1,4 +1,4 @@
-package com.csoreporting;
+package com.csnotify;
 
 import com.facebook.react.ReactActivity;
 
