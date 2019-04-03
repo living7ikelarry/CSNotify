@@ -229,7 +229,12 @@ export default class App extends React.Component<Props, State> {
   }
 
   // on change of form element re-render
-  onChange(value) {
+  onChange(value, path) {
+    // when department field is changed, reset value of location select
+    // this fixes bug with IOSPicker
+    if (path[0] === 'department') {
+      value.locationSel = null;
+    }
     // recalculate the type only if strictly necessary
     const type = this.getLocations(value);
     this.setState({ value: value, type: type });
